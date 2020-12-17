@@ -80,7 +80,7 @@ Once your SDK has been required. You create your request array, for example:
 ```
 > NB: This is a sample request. The gateway features many more options. Please see our integration guides for more details.
 
-Then, depending on your integration method, you'd either call (as a promise):
+Then, depending on your integration method, you'd either call:
 
 ```
 var gatewayResponse = gateway.directRequest(params);
