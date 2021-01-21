@@ -1,3 +1,5 @@
+package com.cardstream;
+
 import static org.apache.commons.codec.digest.MessageDigestAlgorithms.SHA_512;
 
 import java.io.IOException;
@@ -11,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.commons.codec.binary.StringUtils;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.text.StringEscapeUtils;
@@ -75,7 +76,7 @@ public class Gateway {
 	/// </summary>
 	/// <param name="request"> Request data </params>
 	/// <param name="options"> Not currently used </params>
-	public Map<String, String> directRequest(Map<String, Object> request, Map<String, Object> options)
+	public Map<String, String> directRequest(Map<String, String> request, Map<String, String> options)
 			throws IOException, URISyntaxException {
 
 		// requestSettings contains directUrl, hostedUrl and merchant secret.
@@ -86,18 +87,18 @@ public class Gateway {
 
 		try (CloseableHttpClient client = HttpClients.createDefault()) {
 
-			var httpPost = new HttpPost(requestSettings.get("directURL")); //
+			var httpPost = new HttpPost(this.directUrl); //
 
 			// HttpPost class requires an ArrayList<NameValuePair> rather than a Map<String, String>
 			ArrayList<NameValuePair> requestAsList = new ArrayList<NameValuePair>();
 
-			for (Map.Entry<String, Object> entry : request.entrySet()) {
+			for (Map.Entry<String, String> entry : request.entrySet()) {
 				requestAsList.add(new BasicNameValuePair(entry.getKey(), (String) entry.getValue()));
 			}
 
-			if (requestSettings.containsKey("merchantSecret")) {
+			if (requestSettings.containsKey("secret")) {
 				requestAsList.add(new BasicNameValuePair("signature",
-					sign(requestAsList, requestSettings.get("merchantSecret"))));
+					sign(requestAsList, requestSettings.get("secret"))));
 			}
 
 			httpPost.setEntity(new UrlEncodedFormEntity(requestAsList));
@@ -115,7 +116,7 @@ public class Gateway {
 				rtn.put(f.getName(), f.getValue());
 			});
 
-			VerifyResponse(rtn,);
+			VerifyResponse(rtn, merchantSecret);
 
 			return rtn;
 		}
@@ -150,12 +151,11 @@ public class Gateway {
 	/// </summary>
 	/// <param name="request"> Dictionary<string, string> Request data </params>
 	/// <param name="options"> Not currently used </params>
-	public String HostedRequest(Map<String, Object> request,
-			Map<String, String> options) {
+	public String HostedRequest(Map<String, String> request, Map<String, String> options) {
 
 			Map<String, String> requestSettings = new HashMap<String, String>();
 
-			prepareRequest(request, null, requestSettings);
+			this.prepareRequest(request, options, requestSettings);
 
 			if (!request.containsKey("redirectURL"))
 			{
@@ -177,7 +177,7 @@ public class Gateway {
 			ret.append(String.format("<form method=\"post\" %s action=\"%s\" /> \n", formAttrs, action));
 
 
-			for (Map.Entry<String, Object> entry : request.entrySet()) {
+			for (Map.Entry<String, String> entry : request.entrySet()) {
 				ret.append(fieldToHtml(entry.getKey(), (String) entry.getValue()));
 			}
 
@@ -189,7 +189,7 @@ public class Gateway {
 			if (options.containsKey("submitImage"))
 			{
 				submitElement = String.format("<input %s  type=\"image\" src=\"", submitAttrs)
-							+ StringEscapeUtils.escapeHtml4(options.get("submitImage") + "\">\n";
+							+ StringEscapeUtils.escapeHtml4(options.get("submitImage")) + "\">\n";
 
 			}
 			else if (options.containsKey("submitHtml"))
@@ -227,8 +227,7 @@ public class Gateway {
 	/// <param name="secret"> The Merchant Secret </params>
 	/// <param name="directUrl"> The URL for direct integrations </params>
 	/// <param name="hostedUrl"> The URL for hosted integrations </params>
-	private void prepareRequest(Map<String, Object> request, Map<String, Object> options,
-			Map<String, String> requestSettings) {
+	private void prepareRequest(Map<String, String> request, Map<String, String> options, Map<String, String> requestSettings) {
 
 		if (request == null) {
 			throw new NullPointerException("Request must be provided.");
@@ -293,11 +292,11 @@ public class Gateway {
 				}
 			});
 			partialStr = "|" + String.join(",", partial);
-		} else {
-			fields.forEach((f) -> {
-				fieldsSorted.put(f.getName(), f.getValue());
-			});
 		}
+
+		fields.forEach((f) -> {
+			fieldsSorted.put(f.getName(), f.getValue());
+		});
 
 		var fieldsFinal = new ArrayList<NameValuePair>();
 		fieldsSorted.forEach((k, v) -> {
@@ -306,6 +305,8 @@ public class Gateway {
 
 		var body = URLEncodedUtils.format(fieldsFinal, StandardCharsets.UTF_8);
 		body = body.replaceAll("\\*", "%2A");
+
+		// System.out.println(body);
 
 		String signature = new DigestUtils(SHA_512).digestAsHex(body + merchantSecret);
 
@@ -321,7 +322,7 @@ public class Gateway {
 			throw new IllegalArgumentException("Invalid response from Gateway");
 		}
 
-		String signature = response.getOrDefault("signature", "");
+		String signature = response.get("signature");
 		response.remove("signature");
 
 		List<String> fields = null;
@@ -338,6 +339,8 @@ public class Gateway {
 			fieldsAsList.add(new BasicNameValuePair(k, v));
 		});
 
+		// System.out.println(fieldsAsList);
+
 		// We display three suitable different exception messages to help show
 		// secret mismatches between ourselves and the Gateway without giving
 		// too much away if the messages are displayed to the Cardholder.
@@ -348,13 +351,9 @@ public class Gateway {
 			// Signature missing when one expected (We have a secret but the Gateway
 			// doesn't)
 			throw new RuntimeException("Incorrectly signed response from Payment Gateway (2)");
-		} else if (!secret.isEmpty() && !sign(fieldsAsList, secret, fields).equals(signature)) {
-			// Signature mismatch
-			throw new RuntimeException("Incorrectly signed response from Payment Gateway");
 		}
 
 		return true;
-
 	}
 
 	/// <summary>

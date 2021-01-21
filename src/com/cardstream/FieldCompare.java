@@ -1,3 +1,5 @@
+package com.cardstream;
+
 import java.util.Comparator;
 
 class FieldCompare implements Comparator<String>

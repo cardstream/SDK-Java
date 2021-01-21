@@ -54,28 +54,30 @@ var gateway = new Gateway("https://test.3ds-pit.com/direct/", "Threeds2Test60Sys
 
 Once your SDK has been required. You create your request array, for example:
 ```
-        List<NameValuePair> params = new ArrayList<NameValuePair>();
+	HashMap<String, String> params = new HashMap<String, String>();
 
-        params.add(new BasicNameValuePair("merchantID", "100856"));
-        params.add(new BasicNameValuePair("action", "SALE"));
-        params.add(new BasicNameValuePair("type", "1"));
-        params.add(new BasicNameValuePair("transactionUnique", uniqid));
-        params.add(new BasicNameValuePair("countryCode", "826"));
-        params.add(new BasicNameValuePair("currencyCode", "826"));
-        params.add(new BasicNameValuePair("amount", "1001"));
-        params.add(new BasicNameValuePair("cardNumber", "4012001037141112"));
-        params.add(new BasicNameValuePair("cardExpiryMonth", "12"));
-        params.add(new BasicNameValuePair("cardExpiryYear", "20"));
-        params.add(new BasicNameValuePair("cardCVV", "083"));
-        params.add(new BasicNameValuePair("customerName", "Test Customer"));
-        params.add(new BasicNameValuePair("customerEmail", "test@testcustomer.com"));
-        params.add(new BasicNameValuePair("customerAddress", "16 Test Street"));
-        params.add(new BasicNameValuePair("customerPostCode", "TE15 5ST"));
-        params.add(new BasicNameValuePair("orderRef", "Test purchase"));
+	params.put("merchantID", "100856");
+	params.put("action", "SALE");
+	params.put("type", "1");
+	params.put("transactionUnique", uniqid);
+	params.put("countryCode", "826");
+	params.put("currencyCode", "826");
+	params.put("amount", "1001");
+	params.put("cardNumber", "4012001037141112");
+	params.put("cardExpiryMonth", "12");
+	params.put("cardExpiryYear", "20");
+	params.put("cardCVV", "083");
+	params.put("customerName", "Test Customer");
+	params.put("customerEmail", "test@testcustomer.com");
+	params.put("customerAddress", "16 Test Street");
+	params.put("customerPostCode", "TE15 5ST");
+	params.put("orderRef", "Test purchase");
 
-        // The following fields are mandatory for direct 3DS v2
-        params.add(new BasicNameValuePair("threeDSVersion", "2"));
-        params.add(new BasicNameValuePair("threeDSRedirectURL", "https://example.net/returnUrl?acs=1")); // PLACEHOLDER
+	// The following fields are mandatory for 3DS v2 direct integrations
+	params.put("remoteAddress", "10.10.10.10");
+	params.put("merchantCategoryCode", "5411");
+	params.put("threeDSVersion", "2");
+	params.put("threeDSRedirectURL", "https://example.net/returnUrl?acs=1"); // PLACEHOLDER
 
 ```
 > NB: This is a sample request. The gateway features many more options. Please see our integration guides for more details.
@@ -83,16 +85,18 @@ Once your SDK has been required. You create your request array, for example:
 Then, depending on your integration method, you'd either call:
 
 ```
-var gatewayResponse = gateway.directRequest(params);
+	var options = new HashMap<String, String>();
+	var gatewayResponse = gTest.directRequest(params, options);
 ```
 
 OR
 
 ```
-var gatewayResponse = gateway.hostedRequest(params);
+	var options = new HashMap<String, String>();
+	var gatewayResponse = gateway.hostedRequest(params, options);
 ```
 
-And then handle the response received from the gateway.
+And then handle the response received from the gateway as per our integration guides.
 
 License
 ----
