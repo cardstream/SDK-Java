@@ -12,7 +12,6 @@ This Java SDK provides an easy method to integrate with the payment gateway.
 
 # Prerequisites
 - The SDK requires the following prerequisites to be met in order to function correctly:
-    - SSL <span style="color: red">**NB: HTTPS is expected to be in place as the payment gateway will respond over SSL when redirecting the user's browser. Failure to provide an environment where HTTPS traffic is possible, will result in the SDK failing**</span>
     - For convenience the following Java libraries have been included for easier set up:
 	- commons-cli-1,4
 	- commons-codec-1.13
