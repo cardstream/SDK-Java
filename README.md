@@ -44,13 +44,15 @@ This Java SDK provides an easy method to integrate with the payment gateway.
 Require the gateway SDK into your project
 
 ```
-    private Gateway gateway;
+    import java.util.HashMap;
+    import com.paymentnetwork.Gateway;
 ```
 
 Instantiate the Gateway object
 
 ```
-var gateway = new Gateway("https://test.3ds-pit.com/direct/", "Threeds2Test60System")
+        var gateway = new Gateway("merchantid", "secretkey", "https://gateway.example.com/direct/", "https://gateway.example.com/paymentform/", null);
+
 ```
 
 Once your SDK has been required. You create your request array, for example:
