@@ -1,9 +1,8 @@
-package com.cardstream;
+package com.paymentnetwork;
 
 import java.util.Comparator;
 
-class FieldCompare implements Comparator<String>
-{
+class FieldCompare implements Comparator<String> {
 	@Override
 	public int compare(String o1, String o2) {
 		if (o1.contains("[")) {

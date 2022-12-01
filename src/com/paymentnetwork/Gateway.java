@@ -1,4 +1,4 @@
-package com.cardstream;
+package com.paymentnetwork;
 
 import static org.apache.commons.codec.digest.MessageDigestAlgorithms.SHA_512;
 
@@ -39,13 +39,13 @@ public class Gateway {
 	public final int RC_3DS_AUTHENTICATION_REQUIRED = 0x1010A;
 
 	// Non 3DS merchantId = 10001, with secret Circle4Take40Idea
-	// 3DS merchantId = 100856, with secret Threeds2Test60System
+	// 3DS merchantId = 100856, with secret Circle4Take40Idea
 
 	public Gateway(String merchantID, String merchantSecret, String directUrl, String hostedUrl, String proxyUrl) {
 		this.merchantID = merchantID == null ? "100856" : merchantID;
-		this.merchantSecret = merchantSecret == null ? "Threeds2Test60System" : merchantSecret;
-		this.directUrl = directUrl == null ? "https://test.3ds-pit.com/direct/" : directUrl;
-		this.hostedUrl = hostedUrl == null ? "https://test.3ds-pit.com/hosted/" : hostedUrl;
+		this.merchantSecret = merchantSecret == null ? "Circle4Take40Idea" : merchantSecret;
+		this.directUrl = directUrl == null ? "https://gateway.example.com/direct/" : directUrl;
+		this.hostedUrl = hostedUrl == null ? "https://gateway.example.com/paymentform/" : hostedUrl;
 		this.proxyUrl = proxyUrl;
 	}
 
@@ -87,9 +87,10 @@ public class Gateway {
 
 		try (CloseableHttpClient client = HttpClients.createDefault()) {
 
-			var httpPost = new HttpPost(this.directUrl); //
+			var httpPost = new HttpPost(this.directUrl);
 
-			// HttpPost class requires an ArrayList<NameValuePair> rather than a Map<String, String>
+			// HttpPost class requires an ArrayList<NameValuePair> rather than a Map<String,
+			// String>
 			ArrayList<NameValuePair> requestAsList = new ArrayList<NameValuePair>();
 
 			for (Map.Entry<String, String> entry : request.entrySet()) {
@@ -98,7 +99,7 @@ public class Gateway {
 
 			if (requestSettings.containsKey("secret")) {
 				requestAsList.add(new BasicNameValuePair("signature",
-					sign(requestAsList, requestSettings.get("secret"))));
+						sign(requestAsList, requestSettings.get("secret"))));
 			}
 
 			httpPost.setEntity(new UrlEncodedFormEntity(requestAsList));
@@ -153,62 +154,53 @@ public class Gateway {
 	/// <param name="options"> Not currently used </params>
 	public String HostedRequest(Map<String, String> request, Map<String, String> options) {
 
-			Map<String, String> requestSettings = new HashMap<String, String>();
+		Map<String, String> requestSettings = new HashMap<String, String>();
 
-			this.prepareRequest(request, options, requestSettings);
+		this.prepareRequest(request, options, requestSettings);
 
-			if (!request.containsKey("redirectURL"))
-			{
-				// RedirectURL is used to send the user back to your site following
-				// a transaction. It must be set according to your environment.
-				throw new IllegalArgumentException("redirectURL is required and must be set according to your environment");
-			}
+		if (!request.containsKey("redirectURL")) {
+			// RedirectURL is used to send the user back to your site following
+			// a transaction. It must be set according to your environment.
+			throw new IllegalArgumentException("redirectURL is required and must be set according to your environment");
+		}
 
-			if (requestSettings.containsKey("merchantSecret"))
-			{
-				request.put("signature", requestSettings.get("signature"));
-			}
+		if (requestSettings.containsKey("merchantSecret")) {
+			request.put("signature", requestSettings.get("signature"));
+		}
 
-			StringBuilder ret = new StringBuilder();
+		StringBuilder ret = new StringBuilder();
 
-			String formAttrs = options.containsKey("formAttrs") ?  options.get("formAttrs") : "";
-			String action = StringEscapeUtils.escapeHtml4(this.hostedUrl);
+		String formAttrs = options.containsKey("formAttrs") ? options.get("formAttrs") : "";
+		String action = StringEscapeUtils.escapeHtml4(this.hostedUrl);
 
-			ret.append(String.format("<form method=\"post\" %s action=\"%s\" /> \n", formAttrs, action));
+		ret.append(String.format("<form method=\"post\" %s action=\"%s\" /> \n", formAttrs, action));
 
+		for (Map.Entry<String, String> entry : request.entrySet()) {
+			ret.append(fieldToHtml(entry.getKey(), (String) entry.getValue()));
+		}
 
-			for (Map.Entry<String, String> entry : request.entrySet()) {
-				ret.append(fieldToHtml(entry.getKey(), (String) entry.getValue()));
-			}
+		String submitAttrs = options.getOrDefault("submitAttrs", "");
 
-			String submitAttrs = options.getOrDefault("submitAttrs", "");
+		ret.append(submitAttrs);
 
-			ret.append(submitAttrs);
+		String submitElement;
+		if (options.containsKey("submitImage")) {
+			submitElement = String.format("<input %s  type=\"image\" src=\"", submitAttrs)
+					+ StringEscapeUtils.escapeHtml4(options.get("submitImage")) + "\">\n";
 
-			String submitElement;
-			if (options.containsKey("submitImage"))
-			{
-				submitElement = String.format("<input %s  type=\"image\" src=\"", submitAttrs)
-							+ StringEscapeUtils.escapeHtml4(options.get("submitImage")) + "\">\n";
-
-			}
-			else if (options.containsKey("submitHtml"))
-			{
-				submitElement = String.format("<button type=\"submit\" %s >", submitAttrs)
-							+ options.get("submitHtml") + "</button>\n";
-			}
-			else
-			{
-				submitElement = String.format("<input %s type=\"submit\" value=\"", submitAttrs)
+		} else if (options.containsKey("submitHtml")) {
+			submitElement = String.format("<button type=\"submit\" %s >", submitAttrs)
+					+ options.get("submitHtml") + "</button>\n";
+		} else {
+			submitElement = String.format("<input %s type=\"submit\" value=\"", submitAttrs)
 					+ StringEscapeUtils.escapeHtml4(options.getOrDefault("submitText", "Pay Now"))
 					+ "\">\n";
-			}
-
-
-			ret.append(submitElement + "</form>\n");
-
-			return ret.toString();
 		}
+
+		ret.append(submitElement + "</form>\n");
+
+		return ret.toString();
+	}
 
 	/// <summary>
 	/// Prepare a request for sending to the Gateway.
@@ -269,8 +261,15 @@ public class Gateway {
 
 		// Remove items we don't want to send in the request
 		// (they may be there if a previous response is sent)
-		String[] removeKeys = new String[] { "responseCode", "responseMessage", "responseStatus", "state", "signature",
-				"merchantAlias", "merchantID2" };
+		String[] removeKeys = new String[] { 
+			"responseCode",
+			"responseMessage",
+			"responseStatus",
+			"state",
+			"signature",
+			"merchantAlias",
+			"merchantID2"
+		};
 
 		for (String key : removeKeys) {
 			request.remove(key); // Doesn't error if key not present.
@@ -348,8 +347,7 @@ public class Gateway {
 			// Signature present when not expected (Gateway has a secret but we don't)
 			throw new RuntimeException("Incorrectly signed response from Payment Gateway (1)");
 		} else if (!secret.isEmpty() && signature.isEmpty()) {
-			// Signature missing when one expected (We have a secret but the Gateway
-			// doesn't)
+			// Signature missing when one expected (We have a secret but the Gateway doesn't)
 			throw new RuntimeException("Incorrectly signed response from Payment Gateway (2)");
 		}
 
@@ -394,8 +392,7 @@ public class Gateway {
 	/// Name and value as a hidden form field.
 	/// </summary>
 	/// <returns>
-	/// String with the format `<input type="hidden" name="{name}" value="{value}"
-	/// />`
+	/// String with the format `<input type="hidden" name="{name}" value="{value}"/>`
 	/// </returns>
 	public static String fieldToHtml(String name, String value) {
 		value = StringEscapeUtils.escapeHtml4(value);
